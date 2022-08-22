@@ -1,0 +1,49 @@
+	
+service: to-do-application
+ 
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: dev
+  region: eu-central-1	
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["ToDoDynamoDBTable", "Arn" ] }
+  environment:
+   TODO_TABLE: ${self:custom.tableName}
+ 
+functions:
+  app:
+    handler: handler.handler
+    events:
+      - http: ANY /
+      - http: 'ANY {proxy+}'
+
+resources:
+  Resources:
+    ToDoDynamoDBTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id 
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id 
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
+
+custom:
+  tableName: 'todo-table-${self:provider.stage}'
